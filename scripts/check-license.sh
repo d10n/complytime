@@ -21,14 +21,8 @@ git ls-files -z | grep -z -f <(
             -e '// SPDX-License-Identifier: Apache-2.0' \
             -e '# SPDX-License-Identifier: Apache-2.0'; then
         printf '\e[0;31mLicense comment missing from file: \e[0;33m%s\e[0m\n' "$file"
-        # Don't automatically add the comment if it would overwrite local files
-        if [[ -e "$file.tmp.$$" ]]; then
-            printf '\e[0;31mCowardly refusing to clobber temporary files; manually add the comment\e[0m\n'
-            exit 1
-        fi
         # Add the comment, with a blank line after
-        cp -- "$file" "$file.tmp.$$"
-        awk -v line_comment_token="$line_comment_token" '
+        git show HEAD:"$file" | awk -v line_comment_token="$line_comment_token" '
             # Skip shebang if it exists
             NR==1 && /^#!/ { print; next }
             !added {
@@ -39,8 +33,7 @@ git ls-files -z | grep -z -f <(
                 added=1
                 next
             }
-            1' <"$file.tmp.$$" >"$file"
-        rm -- "$file.tmp.$$"
+            1' >"$file"
         printf '\e[0;31mPlease add and re-commit\e[0m\n'
         exit 1
     fi
