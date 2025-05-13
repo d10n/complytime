@@ -23,6 +23,9 @@ const assessmentPlanLocation = "assessment-plan.json"
 type planOptions struct {
 	*option.Common
 	complyTimeOpts *option.ComplyTime
+
+	// dryRun loads the defaults and prints the config to stdout
+	dryRun bool
 }
 
 // planCmd creates a new cobra.Command for the "plan" subcommand
@@ -45,6 +48,7 @@ func planCmd(common *option.Common) *cobra.Command {
 			return runPlan(cmd, planOpts)
 		},
 	}
+	cmd.Flags().BoolVarP(&planOpts.dryRun, "dry-run", "n", false, "load the defaults and print the config to stdout")
 	planOpts.complyTimeOpts.BindFlags(cmd.Flags())
 	return cmd
 }
@@ -65,6 +69,12 @@ func runPlan(cmd *cobra.Command, opts *planOptions) error {
 	assessmentPlan, err := transformers.ComponentDefinitionsToAssessmentPlan(cmd.Context(), componentDefs, opts.complyTimeOpts.FrameworkID)
 	if err != nil {
 		return err
+	}
+
+	if opts.dryRun {
+		// Write the plan configuration to stdout
+		planDryRun(appDir, opts.complyTimeOpts.FrameworkID, componentDefs, assessmentPlan)
+		return nil
 	}
 
 	filePath := filepath.Join(opts.complyTimeOpts.UserWorkspace, assessmentPlanLocation)
